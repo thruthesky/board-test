@@ -67,7 +67,16 @@ require __DIR__ . '/layout/header.php';
                         <ul class="cat-list">
                             <?php foreach ($categoryData[$catKey]['posts'] as $post): ?>
                                 <li>
-                                    <a href="/post/view?id=<?= $post->id ?>"><?= htmlspecialchars($post->title) ?></a>
+                                    <a href="/post/view?id=<?= $post->id ?>" style="display: flex; align-items: center; gap: 8px;">
+                                        <span class="avatar avatar-sm" style="font-size: 0.6em;">
+                                            <?php if ($post->getAuthorPhotoUrl()): ?>
+                                                <img src="<?= htmlspecialchars($post->getAuthorPhotoUrl()) ?>" alt="">
+                                            <?php else: ?>
+                                                <?= mb_substr($post->author_name ?? '', 0, 1) ?>
+                                            <?php endif; ?>
+                                        </span>
+                                        <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"><?= htmlspecialchars($post->title) ?></span>
+                                    </a>
                                     <span class="meta"><?= date('m.d', strtotime($post->created_at)) ?></span>
                                 </li>
                             <?php endforeach; ?>

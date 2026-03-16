@@ -141,4 +141,41 @@ class PostRepository
         $stmt = $this->pdo->prepare('DELETE FROM posts WHERE id = :id');
         return $stmt->execute(['id' => $id]);
     }
+
+    /**
+     * 게시글에 첨부파일 연결
+     */
+    public function addAttachment(int $postId, int $uploadId): void
+    {
+        $stmt = $this->pdo->prepare('INSERT INTO post_attachments (post_id, upload_id) VALUES (:post_id, :upload_id)');
+        $stmt->execute(['post_id' => $postId, 'upload_id' => $uploadId]);
+    }
+
+    /**
+     * 게시글의 첨부파일 목록 조회
+     */
+    public function getAttachments(int $postId): array
+    {
+        $stmt = $this->pdo->prepare('
+            SELECT u.* FROM uploads u
+            JOIN post_attachments pa ON u.id = pa.upload_id
+            WHERE pa.post_id = :post_id
+            ORDER BY u.id ASC
+        ');
+        $stmt->execute(['post_id' => $postId]);
+        return array_map(fn($row) => new \lib\upload\UploadEntity($row), $stmt->fetchAll());
+    }
+
+    /**
+     * 게시글의 첨부파일 동기화 (기존 첨부 전부 삭제 후 재연결)
+     */
+    public function syncAttachments(int $postId, array $uploadIds): void
+    {
+        $stmt = $this->pdo->prepare('DELETE FROM post_attachments WHERE post_id = :post_id');
+        $stmt->execute(['post_id' => $postId]);
+
+        foreach ($uploadIds as $uploadId) {
+            $this->addAttachment($postId, (int)$uploadId);
+        }
+    }
 }

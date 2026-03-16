@@ -36,20 +36,54 @@ if ($post === null) {
 
 $pageTitle = htmlspecialchars($post->title);
 $isAuthor = isset($_SESSION['user_id']) && $_SESSION['user_id'] === $post->user_id;
+$attachments = $service->getAttachments($post->id);
 
 require __DIR__ . '/../layout/header.php';
 ?>
 
 <div class="card">
     <h2><?= htmlspecialchars($post->title) ?></h2>
-    <div style="color: #888; margin: 10px 0 20px; font-size: 0.9em;">
-        작성자: <?= htmlspecialchars($post->author_name ?? '') ?> |
-        작성일: <?= date('Y-m-d H:i', strtotime($post->created_at)) ?>
-        <?php if ($post->updated_at !== $post->created_at): ?>
-            | 수정일: <?= date('Y-m-d H:i', strtotime($post->updated_at)) ?>
-        <?php endif; ?>
+    <div style="color: #888; margin: 10px 0 20px; font-size: 0.9em; display: flex; align-items: center; gap: 10px;">
+        <span class="avatar">
+            <?php if ($post->getAuthorPhotoUrl()): ?>
+                <img src="<?= htmlspecialchars($post->getAuthorPhotoUrl()) ?>" alt="">
+            <?php else: ?>
+                <?= mb_substr($post->author_name ?? '', 0, 1) ?>
+            <?php endif; ?>
+        </span>
+        <span>
+            <strong style="color: var(--gray-800);"><?= htmlspecialchars($post->author_name ?? '') ?></strong><br>
+            <?= date('Y-m-d H:i', strtotime($post->created_at)) ?>
+            <?php if ($post->updated_at !== $post->created_at): ?>
+                (수정: <?= date('Y-m-d H:i', strtotime($post->updated_at)) ?>)
+            <?php endif; ?>
+        </span>
     </div>
     <div style="min-height: 200px; white-space: pre-wrap; line-height: 1.8;"><?= htmlspecialchars($post->content) ?></div>
+
+    <?php if (!empty($attachments)): ?>
+        <div style="margin-top: 24px; padding-top: 24px; border-top: 1px solid var(--gray-100);">
+            <h4 style="font-size: 0.9em; color: var(--gray-500); margin-bottom: 12px;">첨부파일 (<?= count($attachments) ?>)</h4>
+            <div style="display: flex; flex-wrap: wrap; gap: 12px;">
+                <?php foreach ($attachments as $att): ?>
+                    <?php if ($att->isImage()): ?>
+                        <a href="<?= htmlspecialchars($att->getUrl()) ?>" target="_blank" style="display: block;">
+                            <img src="<?= htmlspecialchars($att->getUrl()) ?>" alt="<?= htmlspecialchars($att->original_name) ?>"
+                                 style="max-width: 100%; max-height: 400px; border-radius: var(--radius-sm); border: 1px solid var(--gray-200);">
+                        </a>
+                    <?php elseif ($att->isVideo()): ?>
+                        <video controls style="max-width: 100%; max-height: 400px; border-radius: var(--radius-sm);">
+                            <source src="<?= htmlspecialchars($att->getUrl()) ?>" type="<?= htmlspecialchars($att->mime_type) ?>">
+                        </video>
+                    <?php else: ?>
+                        <a href="<?= htmlspecialchars($att->getUrl()) ?>" target="_blank" class="btn btn-secondary" style="font-size: 0.85em;">
+                            <?= htmlspecialchars($att->original_name) ?>
+                        </a>
+                    <?php endif; ?>
+                <?php endforeach; ?>
+            </div>
+        </div>
+    <?php endif; ?>
 
     <div style="margin-top: 30px; display: flex; justify-content: space-between;">
         <a href="/post/list" class="btn btn-secondary">목록으로</a>
@@ -93,70 +127,65 @@ $commentCount = $commentService->getCommentCount($post->id);
         </p>
     <?php endif; ?>
 
+    <?php
+    // 댓글 재귀 렌더링 함수
+    function renderComment($comment, $post, $depth = 0) {
+        $marginLeft = $depth > 0 ? ($depth * 24) : 0;
+        $isChild = $depth > 0;
+        $bgStyle = $isChild ? 'background: var(--gray-50); border-radius: var(--radius-sm); border-left: 3px solid var(--primary-light); padding: 12px 16px;' : 'padding: 16px 0; border-top: 1px solid var(--gray-100);';
+        $marginStyle = $isChild ? "margin-top: 12px; margin-left: {$marginLeft}px;" : '';
+    ?>
+        <div class="comment" style="<?= $marginStyle ?> <?= $bgStyle ?>" id="comment-<?= $comment->id ?>">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: <?= $isChild ? '6px' : '8px' ?>;">
+                <div>
+                    <strong style="font-size: <?= $isChild ? '0.85em' : '0.9em' ?>;"><?= htmlspecialchars($comment->author_name ?? '') ?></strong>
+                    <span style="color: var(--gray-400); font-size: <?= $isChild ? '0.78em' : '0.8em' ?>; margin-left: 8px;"><?= date('Y-m-d H:i', strtotime($comment->created_at)) ?></span>
+                </div>
+                <div style="display: flex; gap: 8px; align-items: center;">
+                    <?php if (isset($_SESSION['user_id'])): ?>
+                        <button onclick="toggleReplyForm(<?= $comment->id ?>)" style="background: none; border: none; color: var(--primary); cursor: pointer; font-size: 0.85em; font-family: inherit;">답글</button>
+                    <?php endif; ?>
+                    <?php if (isset($_SESSION['user_id']) && $_SESSION['user_id'] === $comment->user_id): ?>
+                        <form method="POST" action="/post/view?id=<?= $post->id ?>" style="display: inline;">
+                            <input type="hidden" name="action" value="comment_delete">
+                            <input type="hidden" name="comment_id" value="<?= $comment->id ?>">
+                            <button type="submit" onclick="return confirm('댓글을 삭제하시겠습니까?')" style="background: none; border: none; color: var(--danger); cursor: pointer; font-size: 0.85em; font-family: inherit;">삭제</button>
+                        </form>
+                    <?php endif; ?>
+                </div>
+            </div>
+            <div style="white-space: pre-wrap; line-height: 1.6; font-size: <?= $isChild ? '0.9em' : '0.95em' ?>;"><?= htmlspecialchars($comment->content) ?></div>
+
+            <!-- 답글 작성 폼 (숨김) -->
+            <div id="reply-form-<?= $comment->id ?>" style="display: none; margin-top: 12px;">
+                <form method="POST" action="/post/view?id=<?= $post->id ?>">
+                    <input type="hidden" name="action" value="comment_create">
+                    <input type="hidden" name="post_id" value="<?= $post->id ?>">
+                    <input type="hidden" name="parent_id" value="<?= $comment->id ?>">
+                    <div class="form-group" style="margin-bottom: 8px;">
+                        <textarea name="content" placeholder="답글을 입력하세요..." style="min-height: 60px;" required></textarea>
+                    </div>
+                    <div style="text-align: right; display: flex; gap: 8px; justify-content: flex-end;">
+                        <button type="button" onclick="toggleReplyForm(<?= $comment->id ?>)" class="btn btn-secondary" style="padding: 6px 14px; font-size: 0.85em;">취소</button>
+                        <button type="submit" class="btn btn-primary" style="padding: 6px 14px; font-size: 0.85em;">답글 작성</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- 하위 댓글 재귀 렌더링 -->
+            <?php if (!empty($comment->children)): ?>
+                <?php foreach ($comment->children as $child): ?>
+                    <?php renderComment($child, $post, $depth + 1); ?>
+                <?php endforeach; ?>
+            <?php endif; ?>
+        </div>
+    <?php } ?>
+
     <?php if (empty($comments)): ?>
         <p style="text-align: center; color: var(--gray-400); padding: 32px 0;">아직 댓글이 없습니다.</p>
     <?php else: ?>
         <?php foreach ($comments as $comment): ?>
-            <!-- 댓글 -->
-            <div class="comment" style="padding: 16px 0; border-top: 1px solid var(--gray-100);" id="comment-<?= $comment->id ?>">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                    <div>
-                        <strong style="font-size: 0.9em;"><?= htmlspecialchars($comment->author_name ?? '') ?></strong>
-                        <span style="color: var(--gray-400); font-size: 0.8em; margin-left: 8px;"><?= date('Y-m-d H:i', strtotime($comment->created_at)) ?></span>
-                    </div>
-                    <div style="display: flex; gap: 8px; align-items: center;">
-                        <?php if (isset($_SESSION['user_id'])): ?>
-                            <button onclick="toggleReplyForm(<?= $comment->id ?>)" style="background: none; border: none; color: var(--primary); cursor: pointer; font-size: 0.85em; font-family: inherit;">답글</button>
-                        <?php endif; ?>
-                        <?php if (isset($_SESSION['user_id']) && $_SESSION['user_id'] === $comment->user_id): ?>
-                            <form method="POST" action="/post/view?id=<?= $post->id ?>" style="display: inline;">
-                                <input type="hidden" name="action" value="comment_delete">
-                                <input type="hidden" name="comment_id" value="<?= $comment->id ?>">
-                                <button type="submit" onclick="return confirm('댓글을 삭제하시겠습니까?')" style="background: none; border: none; color: var(--danger); cursor: pointer; font-size: 0.85em; font-family: inherit;">삭제</button>
-                            </form>
-                        <?php endif; ?>
-                    </div>
-                </div>
-                <div style="white-space: pre-wrap; line-height: 1.6; font-size: 0.95em;"><?= htmlspecialchars($comment->content) ?></div>
-
-                <!-- 대댓글 작성 폼 (숨김) -->
-                <div id="reply-form-<?= $comment->id ?>" style="display: none; margin-top: 12px;">
-                    <form method="POST" action="/post/view?id=<?= $post->id ?>">
-                        <input type="hidden" name="action" value="comment_create">
-                        <input type="hidden" name="post_id" value="<?= $post->id ?>">
-                        <input type="hidden" name="parent_id" value="<?= $comment->id ?>">
-                        <div class="form-group" style="margin-bottom: 8px;">
-                            <textarea name="content" placeholder="답글을 입력하세요..." style="min-height: 60px;" required></textarea>
-                        </div>
-                        <div style="text-align: right; display: flex; gap: 8px; justify-content: flex-end;">
-                            <button type="button" onclick="toggleReplyForm(<?= $comment->id ?>)" class="btn btn-secondary" style="padding: 6px 14px; font-size: 0.85em;">취소</button>
-                            <button type="submit" class="btn btn-primary" style="padding: 6px 14px; font-size: 0.85em;">답글 작성</button>
-                        </div>
-                    </form>
-                </div>
-
-                <!-- 대댓글 목록 -->
-                <?php if (!empty($comment->children)): ?>
-                    <?php foreach ($comment->children as $child): ?>
-                        <div class="reply" style="margin-top: 12px; margin-left: 24px; padding: 12px 16px; background: var(--gray-50); border-radius: var(--radius-sm); border-left: 3px solid var(--primary-light);" id="comment-<?= $child->id ?>">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                                <div>
-                                    <strong style="font-size: 0.85em;"><?= htmlspecialchars($child->author_name ?? '') ?></strong>
-                                    <span style="color: var(--gray-400); font-size: 0.78em; margin-left: 8px;"><?= date('Y-m-d H:i', strtotime($child->created_at)) ?></span>
-                                </div>
-                                <?php if (isset($_SESSION['user_id']) && $_SESSION['user_id'] === $child->user_id): ?>
-                                    <form method="POST" action="/post/view?id=<?= $post->id ?>" style="display: inline;">
-                                        <input type="hidden" name="action" value="comment_delete">
-                                        <input type="hidden" name="comment_id" value="<?= $child->id ?>">
-                                        <button type="submit" onclick="return confirm('답글을 삭제하시겠습니까?')" style="background: none; border: none; color: var(--danger); cursor: pointer; font-size: 0.8em; font-family: inherit;">삭제</button>
-                                    </form>
-                                <?php endif; ?>
-                            </div>
-                            <div style="white-space: pre-wrap; line-height: 1.6; font-size: 0.9em;"><?= htmlspecialchars($child->content) ?></div>
-                        </div>
-                    <?php endforeach; ?>
-                <?php endif; ?>
-            </div>
+            <?php renderComment($comment, $post, 0); ?>
         <?php endforeach; ?>
     <?php endif; ?>
 </div>

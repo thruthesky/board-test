@@ -90,14 +90,26 @@ test('존재하지 않는 부모 댓글에 대댓글 작성 시 실패한다', f
     expect($result['message'])->toBe('부모 댓글을 찾을 수 없습니다.');
 });
 
-test('대댓글의 대댓글은 작성할 수 없다', function () {
+test('대댓글의 대댓글을 무제한으로 작성할 수 있다', function () {
     $service = new CommentService();
-    $parent = $service->create($this->postId, $this->user1['user_id'], '부모 댓글');
-    $child = $service->create($this->postId, $this->user2['user_id'], '대댓글', $parent['comment_id']);
-    $result = $service->create($this->postId, $this->user1['user_id'], '대대댓글', $child['comment_id']);
+    $depth1 = $service->create($this->postId, $this->user1['user_id'], '1단계 댓글');
+    expect($depth1['success'])->toBeTrue();
 
-    expect($result['success'])->toBeFalse();
-    expect($result['message'])->toBe('대댓글에는 답글을 달 수 없습니다.');
+    $depth2 = $service->create($this->postId, $this->user2['user_id'], '2단계 댓글', $depth1['comment_id']);
+    expect($depth2['success'])->toBeTrue();
+
+    $depth3 = $service->create($this->postId, $this->user1['user_id'], '3단계 댓글', $depth2['comment_id']);
+    expect($depth3['success'])->toBeTrue();
+
+    $depth4 = $service->create($this->postId, $this->user2['user_id'], '4단계 댓글', $depth3['comment_id']);
+    expect($depth4['success'])->toBeTrue();
+
+    // 트리 구조 확인
+    $comments = $service->getCommentsByPostId($this->postId);
+    expect($comments)->toHaveCount(1);
+    expect($comments[0]->children)->toHaveCount(1);
+    expect($comments[0]->children[0]->children)->toHaveCount(1);
+    expect($comments[0]->children[0]->children[0]->children)->toHaveCount(1);
 });
 
 test('다른 게시글의 댓글을 부모로 지정할 수 없다', function () {

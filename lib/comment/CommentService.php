@@ -47,10 +47,6 @@ class CommentService
             if ($parentComment->post_id !== $postId) {
                 return ['success' => false, 'message' => '잘못된 부모 댓글입니다.'];
             }
-            // 대댓글의 대댓글은 허용하지 않음 (1단계까지만)
-            if ($parentComment->parent_id !== null) {
-                return ['success' => false, 'message' => '대댓글에는 답글을 달 수 없습니다.'];
-            }
         }
 
         $comment = new CommentEntity([
@@ -72,24 +68,23 @@ class CommentService
     {
         $allComments = $this->repository->findByPostId($postId);
 
-        // 트리 구조로 변환: 부모 댓글 -> 대댓글
-        $rootComments = [];
-        $childMap = [];
-
+        // 트리 구조로 변환: 무한 깊이 지원
+        $commentMap = [];
         foreach ($allComments as $comment) {
+            $comment->children = [];
+            $commentMap[$comment->id] = $comment;
+        }
+
+        $rootComments = [];
+        foreach ($commentMap as $comment) {
             if ($comment->parent_id === null) {
-                $rootComments[$comment->id] = $comment;
-            } else {
-                $childMap[$comment->parent_id][] = $comment;
+                $rootComments[] = $comment;
+            } elseif (isset($commentMap[$comment->parent_id])) {
+                $commentMap[$comment->parent_id]->children[] = $comment;
             }
         }
 
-        // 대댓글을 부모 댓글에 연결
-        foreach ($rootComments as $comment) {
-            $comment->children = $childMap[$comment->id] ?? [];
-        }
-
-        return array_values($rootComments);
+        return $rootComments;
     }
 
     /**

@@ -20,7 +20,7 @@ class PostService
     /**
      * 게시글 작성
      */
-    public function create(int $userId, string $title, string $content, string $category = 'discussion'): array
+    public function create(int $userId, string $title, string $content, string $category = 'discussion', array $attachmentIds = []): array
     {
         if (empty($title) || empty($content)) {
             return ['success' => false, 'message' => '제목과 내용을 입력해주세요.'];
@@ -42,6 +42,11 @@ class PostService
         ]);
 
         $postId = $this->repository->create($post);
+
+        // 첨부파일 연결
+        if (!empty($attachmentIds)) {
+            $this->repository->syncAttachments($postId, $attachmentIds);
+        }
 
         return ['success' => true, 'message' => '게시글이 작성되었습니다.', 'post_id' => $postId];
     }
@@ -73,6 +78,14 @@ class PostService
     }
 
     /**
+     * 게시글의 첨부파일 목록 조회
+     */
+    public function getAttachments(int $postId): array
+    {
+        return $this->repository->getAttachments($postId);
+    }
+
+    /**
      * 카테고리별 게시글 목록 조회
      */
     public function getListByCategory(string $category, int $page = 1, int $perPage = 10): array
@@ -94,7 +107,7 @@ class PostService
     /**
      * 게시글 수정
      */
-    public function update(int $postId, int $userId, string $title, string $content): array
+    public function update(int $postId, int $userId, string $title, string $content, ?array $attachmentIds = null): array
     {
         if (empty($title) || empty($content)) {
             return ['success' => false, 'message' => '제목과 내용을 입력해주세요.'];
@@ -117,6 +130,11 @@ class PostService
         $post->title = $title;
         $post->content = $content;
         $this->repository->update($post);
+
+        // 첨부파일 동기화
+        if ($attachmentIds !== null) {
+            $this->repository->syncAttachments($postId, $attachmentIds);
+        }
 
         return ['success' => true, 'message' => '게시글이 수정되었습니다.'];
     }

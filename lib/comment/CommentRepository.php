@@ -93,10 +93,19 @@ class CommentRepository
     }
 
     /**
-     * 댓글 삭제
+     * 댓글 삭제 (하위 댓글 포함 재귀 삭제)
      */
     public function delete(int $id): bool
     {
+        // 하위 댓글부터 재귀적으로 삭제
+        $stmt = $this->pdo->prepare('SELECT id FROM comments WHERE parent_id = :parent_id');
+        $stmt->execute(['parent_id' => $id]);
+        $childIds = $stmt->fetchAll(\PDO::FETCH_COLUMN);
+
+        foreach ($childIds as $childId) {
+            $this->delete((int)$childId);
+        }
+
         $stmt = $this->pdo->prepare('DELETE FROM comments WHERE id = :id');
         return $stmt->execute(['id' => $id]);
     }

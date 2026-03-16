@@ -17,7 +17,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $_SESSION['user_id'],
         $_POST['title'] ?? '',
         $_POST['content'] ?? '',
-        $_POST['category'] ?? 'discussion'
+        $_POST['category'] ?? 'discussion',
+        $_POST['attachment_ids'] ?? []
     );
 
     if ($result['success']) {
@@ -39,7 +40,17 @@ require __DIR__ . '/../layout/header.php';
     <?php endif; ?>
 
     <form method="POST" action="/post/create">
-        <input type="hidden" name="category" value="<?= htmlspecialchars($category) ?>">
+        <div class="form-group">
+            <label for="category">카테고리</label>
+            <select id="category" name="category" style="width:100%; padding:12px 16px; border:1.5px solid var(--gray-200); border-radius:var(--radius-sm); font-size:0.95em; font-family:inherit; color:var(--gray-800); background:var(--gray-50); outline:none;">
+                <?php
+                $categoryNames = ['discussion' => '자유토론', 'qna' => '질문답변', 'news' => '뉴스'];
+                $selectedCategory = $_POST['category'] ?? $category;
+                foreach ($categoryNames as $key => $name): ?>
+                    <option value="<?= $key ?>" <?= $selectedCategory === $key ? 'selected' : '' ?>><?= $name ?></option>
+                <?php endforeach; ?>
+            </select>
+        </div>
         <div class="form-group">
             <label for="title">제목</label>
             <input type="text" id="title" name="title" value="<?= htmlspecialchars($_POST['title'] ?? '') ?>" required maxlength="200">

@@ -6,17 +6,20 @@
  * 예: /api.php?method=user.register, /api.php?method=post.list
  */
 
-// PSR-4 수동 오토로더
-spl_autoload_register(function (string $class) {
-    // 네임스페이스 구분자를 디렉토리 구분자로 변환
-    $path = __DIR__ . '/' . str_replace('\\', '/', $class) . '.php';
-    if (file_exists($path)) {
-        require_once $path;
-    }
-});
+// index.php에서 require로 호출될 수 있으므로, 오토로더/세션 중복 초기화 방지
+if (!function_exists('__board_autoloader_registered')) {
+    spl_autoload_register(function (string $class) {
+        $path = __DIR__ . '/' . str_replace('\\', '/', $class) . '.php';
+        if (file_exists($path)) {
+            require_once $path;
+        }
+    });
+    function __board_autoloader_registered() { return true; }
+}
 
-// 세션 시작
-session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
 header('Content-Type: application/json; charset=utf-8');
 

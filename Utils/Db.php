@@ -126,6 +126,17 @@ class Db
             )
         ');
 
+        // post_attachments 테이블 생성 (게시글-첨부파일 연결)
+        $this->pdo->exec('
+            CREATE TABLE IF NOT EXISTS post_attachments (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                post_id INTEGER NOT NULL,
+                upload_id INTEGER NOT NULL,
+                FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE,
+                FOREIGN KEY (upload_id) REFERENCES uploads(id) ON DELETE CASCADE
+            )
+        ');
+
         // 마이그레이션: users 테이블에 profile_photo_id 컬럼 추가
         $columns = $this->pdo->query('PRAGMA table_info(users)')->fetchAll();
         $columnNames = array_column($columns, 'name');

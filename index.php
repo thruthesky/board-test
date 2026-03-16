@@ -11,12 +11,7 @@ if (php_sapi_name() === 'cli-server') {
     $requestPath = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
     $filePath = __DIR__ . $requestPath;
 
-    // api.php 요청은 직접 실행
-    if ($requestPath === '/api.php') {
-        return false;
-    }
-
-    // PHP 파일은 라우터를 통해 처리하고, 나머지 정적 파일만 직접 제공
+    // 정적 파일(CSS, JS, 이미지, 업로드 파일 등) 직접 제공 (.php 파일 제외)
     if ($requestPath !== '/' && is_file($filePath) && !preg_match('/\.php$/', $requestPath)) {
         return false;
     }
@@ -36,6 +31,12 @@ session_start();
 
 // 요청 정보 파싱
 $uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+
+// /api.php 요청은 api.php로 라우팅
+if ($uri === '/api.php') {
+    require __DIR__ . '/api.php';
+    exit;
+}
 
 // File Based Routing - URL 경로에서 자동으로 views/ 내 PHP 파일을 찾아 로드
 $viewPath = ($uri === '/') ? '/home' : $uri;
