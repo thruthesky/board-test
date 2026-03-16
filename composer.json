@@ -1,0 +1,28 @@
+{
+    "name": "board/app",
+    "description": "PHP + SQLite 게시판 프로젝트",
+    "type": "project",
+    "autoload": {
+        "psr-4": {
+            "lib\\": "lib/",
+            "Utils\\": "Utils/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Tests\\": "tests/"
+        }
+    },
+    "require": {
+        "php": ">=8.1"
+    },
+    "require-dev": {
+        "pestphp/pest": "^3.0"
+    },
+    "config": {
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        }
+    },
+    "minimum-stability": "stable"
+}
