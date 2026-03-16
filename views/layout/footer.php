@@ -1,5 +1,13 @@
     </div>
 
+    <footer>
+        <div class="container" style="max-width: 1100px; margin: 48px auto 0; padding: 32px 24px; text-align: center; border-top: 1px solid var(--gray-200);">
+            <p style="color: var(--gray-400); font-size: 0.85em; font-weight: 400;">
+                &copy; <?= date('Y') ?> 게시판 &mdash; PHP + SQLite로 만든 커뮤니티
+            </p>
+        </div>
+    </footer>
+
     <!-- Vue.js 3 CDN -->
     <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
     <script>
@@ -14,8 +22,6 @@
 
     /**
      * 파일 업로드 API 호출
-     * @param {File} file
-     * @returns {Promise<object>} { success, message, upload }
      */
     async function uploadFile(file) {
         const formData = new FormData();
@@ -26,7 +32,6 @@
 
     /**
      * 프로필 사진 변경 API
-     * @param {number} uploadId
      */
     async function updateProfilePhoto(uploadId) {
         const formData = new FormData();
@@ -34,9 +39,7 @@
         const res = await fetch('/api.php?method=user.updateProfilePhoto', { method: 'POST', body: formData });
         const data = await res.json();
         if (data.success) {
-            // 전역 상태 업데이트
             AppState.user.profilePhotoUrl = data.profile_photo_url;
-            // 탑바 아바타 즉시 갱신
             const navAvatar = document.getElementById('nav-avatar');
             if (navAvatar) {
                 navAvatar.innerHTML = '<img src="' + data.profile_photo_url + '" alt="">';

@@ -51,7 +51,7 @@ require __DIR__ . '/layout/header.php';
     <div class="home-grid">
         <?php foreach ($categories as $catKey => $catInfo): ?>
             <div class="card">
-                <img src="<?= $catInfo['image'] ?>" alt="<?= $catInfo['label'] ?>" class="cat-cover" loading="lazy">
+                <div class="cat-cover-wrap"><img src="<?= $catInfo['image'] ?>" alt="<?= $catInfo['label'] ?>" class="cat-cover" loading="lazy"></div>
                 <div class="cat-body">
                     <div class="cat-header">
                         <h3>

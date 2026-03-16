@@ -43,7 +43,7 @@ require __DIR__ . '/../layout/header.php';
 
 <div class="card">
     <h2><?= htmlspecialchars($post->title) ?></h2>
-    <div style="color: #888; margin: 10px 0 20px; font-size: 0.9em; display: flex; align-items: center; gap: 10px;">
+    <div class="post-meta">
         <span class="avatar">
             <?php if ($post->getAuthorPhotoUrl()): ?>
                 <img src="<?= htmlspecialchars($post->getAuthorPhotoUrl()) ?>" alt="">
@@ -52,14 +52,16 @@ require __DIR__ . '/../layout/header.php';
             <?php endif; ?>
         </span>
         <span>
-            <strong style="color: var(--gray-800);"><?= htmlspecialchars($post->author_name ?? '') ?></strong><br>
-            <?= date('Y-m-d H:i', strtotime($post->created_at)) ?>
-            <?php if ($post->updated_at !== $post->created_at): ?>
-                (수정: <?= date('Y-m-d H:i', strtotime($post->updated_at)) ?>)
-            <?php endif; ?>
+            <span class="author-name"><?= htmlspecialchars($post->author_name ?? '') ?></span>
+            <span class="date" style="margin-left: 8px;">
+                <?= date('Y-m-d H:i', strtotime($post->created_at)) ?>
+                <?php if ($post->updated_at !== $post->created_at): ?>
+                    (수정: <?= date('Y-m-d H:i', strtotime($post->updated_at)) ?>)
+                <?php endif; ?>
+            </span>
         </span>
     </div>
-    <div style="min-height: 200px; white-space: pre-wrap; line-height: 1.8;"><?= htmlspecialchars($post->content) ?></div>
+    <div class="post-content"><?= htmlspecialchars($post->content) ?></div>
 
     <?php if (!empty($attachments)): ?>
         <div style="margin-top: 24px; padding-top: 24px; border-top: 1px solid var(--gray-100);">
@@ -85,7 +87,7 @@ require __DIR__ . '/../layout/header.php';
         </div>
     <?php endif; ?>
 
-    <div style="margin-top: 30px; display: flex; justify-content: space-between;">
+    <div class="post-actions">
         <a href="/post/list" class="btn btn-secondary">목록으로</a>
         <?php if ($isAuthor): ?>
             <div>
@@ -106,8 +108,8 @@ $comments = $commentService->getCommentsByPostId($post->id);
 $commentCount = $commentService->getCommentCount($post->id);
 ?>
 
-<div class="card" style="margin-top: 24px;">
-    <h3 style="margin-bottom: 20px; font-size: 1.1em;">댓글 (<?= $commentCount ?>)</h3>
+<div class="card comment-section">
+    <h3>댓글 <span class="count-badge"><?= $commentCount ?></span></h3>
 
     <?php if (isset($_SESSION['user_id'])): ?>
         <!-- 댓글 작성 폼 -->
