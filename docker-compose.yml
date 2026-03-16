@@ -8,6 +8,11 @@ services:
     volumes:
       - board-data:/var/www/html/data
       - board-uploads:/var/www/html/uploads
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.board.rule=Host(`board.167.88.45.173.traefik.me`)"
+      - "traefik.http.routers.board.entrypoints=web"
+      - "traefik.http.services.board.loadbalancer.server.port=80"
 
 volumes:
   board-data:
